@@ -1,0 +1,6 @@
+local.env
+terraform.tfstate.lock.info
+*.tfstate
+*.tfstate.backup
+.terraform*
+crash.log
