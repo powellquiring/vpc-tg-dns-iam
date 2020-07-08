@@ -24,8 +24,8 @@ variable network_architecture {
       }
     }
     application1 = {
-      region = "us-south"
-      cidr   = "10.1.0.0/16"
+      region      = "us-south"
+      cidr        = "10.1.0.0/16"
       cidr_remote = "0.0.0.0"
       zones = {
         z1 = {

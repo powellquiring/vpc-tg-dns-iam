@@ -25,7 +25,7 @@ data ibm_is_image "image" {
 }
 
 module user_data_app {
-  source = "../common/user_data_app"
+  source    = "../common/user_data_app"
   remote_ip = "REMOTE_IP" # no remote ip
 }
 
@@ -34,13 +34,13 @@ locals {
 }
 
 resource ibm_is_instance "vsishared" {
-  name    = "${var.basename}-vsishared"
-  vpc     = local.network_context.vpc.id
+  name           = "${var.basename}-vsishared"
+  vpc            = local.network_context.vpc.id
   resource_group = data.ibm_resource_group.shared.id
-  zone    = local.network_context.subnets["z1"].zone
-  keys    = [data.ibm_is_ssh_key.ssh_key.id]
-  image   = data.ibm_is_image.image.id
-  profile = var.profile[var.generation]
+  zone           = local.network_context.subnets["z1"].zone
+  keys           = [data.ibm_is_ssh_key.ssh_key.id]
+  image          = data.ibm_is_image.image.id
+  profile        = var.profile[var.generation]
 
   primary_network_interface {
     subnet = local.network_context.subnets["z1"].id
@@ -57,14 +57,14 @@ resource ibm_is_instance "vsishared" {
 
 resource ibm_is_floating_ip "vsishared" {
   resource_group = data.ibm_resource_group.shared.id
-  name   = "${var.basename}-vsishared"
-  target = ibm_is_instance.vsishared.primary_network_interface[0].id
+  name           = "${var.basename}-vsishared"
+  target         = ibm_is_instance.vsishared.primary_network_interface[0].id
 }
 
 #-------------------------------------------------------------------
 # shared.widgets.com
 resource ibm_dns_resource_record "shared" {
-  instance_id     = local.network_context.dns.guid
+  instance_id = local.network_context.dns.guid
   zone_id     = local.network_context.dns.zone_id
   type        = "A"
   name        = "shared"
@@ -88,5 +88,5 @@ ssh root@${ibm_is_floating_ip.vsishared.address}
 curl ${ibm_is_floating_ip.vsishared.address}:3000; # get hello world string
 curl ${ibm_is_floating_ip.vsishared.address}:3000/info; # get the private IP address
 EOS
-# curl ${ibm_is_floating_ip.vsishared.address}:3000/remote; # get the remote private IP address
+  # curl ${ibm_is_floating_ip.vsishared.address}:3000/remote; # get the remote private IP address
 }

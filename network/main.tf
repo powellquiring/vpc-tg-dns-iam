@@ -57,35 +57,36 @@ resource "ibm_resource_instance" "dns" {
 }
 
 resource "ibm_dns_zone" "shared" {
-  name = "widgets.com"
+  name        = "widgets.com"
   instance_id = ibm_resource_instance.dns.guid
   description = "this is a description"
-  label = "this-is-a-label"
+  label       = "this-is-a-label"
 }
 
 resource "ibm_dns_permitted_network" "shared" {
   instance_id = ibm_resource_instance.dns.guid
   zone_id     = ibm_dns_zone.shared.zone_id
   vpc_crn     = module.vpc_shared.vpc.crn
-  type = "vpc"
+  type        = "vpc"
 }
 
 resource "ibm_dns_permitted_network" "app1" {
+  depends_on  = [ibm_dns_permitted_network.shared]
   instance_id = ibm_resource_instance.dns.guid
   zone_id     = ibm_dns_zone.shared.zone_id
   vpc_crn     = module.vpc_app1.vpc.crn
-  type = "vpc"
+  type        = "vpc"
 }
 
 #-----------------------------------------------------
 resource "null_resource" "transit_gateway" {
   triggers = {
-    path_module          = path.module
-    name                 = "${var.basename}-tgw"
-    location             = var.tgw_region
-    resource_group_id    = data.ibm_resource_group.network.id
-    vpc_shared_crn       = module.vpc_shared.vpc.crn
-    vpc_app1_crn = module.vpc_app1.vpc.crn
+    path_module       = path.module
+    name              = "${var.basename}-tgw"
+    location          = var.tgw_region
+    resource_group_id = data.ibm_resource_group.network.id
+    vpc_shared_crn    = module.vpc_shared.vpc.crn
+    vpc_app1_crn      = module.vpc_app1.vpc.crn
   }
   provisioner "local-exec" {
     command = <<-EOS

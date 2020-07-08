@@ -25,7 +25,7 @@ data ibm_is_image "image" {
 }
 
 module user_data_app {
-  source = "../common/user_data_app"
+  source    = "../common/user_data_app"
   remote_ip = "shared.widgets.com"
 }
 
@@ -34,21 +34,21 @@ locals {
 }
 
 resource ibm_is_instance "vsiapp1" {
-  name    = "${var.basename}-vsiapp1"
-  vpc     = local.network_context.vpc.id
+  name           = "${var.basename}-vsiapp1"
+  vpc            = local.network_context.vpc.id
   resource_group = data.ibm_resource_group.application.id
-  zone    = local.network_context.subnets["z1"].zone
-  keys    = [data.ibm_is_ssh_key.ssh_key.id]
-  image   = data.ibm_is_image.image.id
-  profile = var.profile[var.generation]
+  zone           = local.network_context.subnets["z1"].zone
+  keys           = [data.ibm_is_ssh_key.ssh_key.id]
+  image          = data.ibm_is_image.image.id
+  profile        = var.profile[var.generation]
 
   primary_network_interface {
     subnet = local.network_context.subnets["z1"].id
     security_groups = [
       #local.network_context.security_group_ssh.id, # add to ssh and debug
       #local.network_context.security_group_install_software.id, #centos nodejs is not available on an IBM mirror use outbound_all
-      local.network_context.security_group_outbound_all.id, # centos nodejs is not available on an IBM mirror
-      local.network_context.security_group_ibm_dns.id, # local dns
+      local.network_context.security_group_outbound_all.id,          # centos nodejs is not available on an IBM mirror
+      local.network_context.security_group_ibm_dns.id,               # local dns
       local.network_context.security_group_data_inbound_insecure.id, # curl from my desktop
     ]
   }
@@ -57,8 +57,8 @@ resource ibm_is_instance "vsiapp1" {
 
 resource ibm_is_floating_ip "vsiapp1" {
   resource_group = data.ibm_resource_group.application.id
-  name   = "${var.basename}-vsiapp1"
-  target = ibm_is_instance.vsiapp1.primary_network_interface[0].id
+  name           = "${var.basename}-vsiapp1"
+  target         = ibm_is_instance.vsiapp1.primary_network_interface[0].id
 }
 
 #-------------------------------------------------------------------
