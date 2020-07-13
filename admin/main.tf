@@ -79,7 +79,7 @@ resource "ibm_iam_access_group_policy" "application_policy" {
 # ---------------- network team only - transit gateway
 resource "ibm_iam_access_group_policy" "transit" {
   access_group_id = ibm_iam_access_group.network.id
-  roles           = ["Administrator"]
+  roles           = ["Editor"]
 
   resources {
     service           = "transit"
@@ -90,7 +90,7 @@ resource "ibm_iam_access_group_policy" "transit" {
 # ---------------- dns can be created by the network team but managed by the shared team
 resource "ibm_iam_access_group_policy" "dns_network" {
   access_group_id = ibm_iam_access_group.network.id
-  roles           = ["Administrator", "Manager"]
+  roles           = ["Editor", "Manager"]
 
   resources {
     service           = "dns-svcs"
@@ -113,11 +113,10 @@ resource "ibm_iam_access_group_policy" "dns-shared" {
 # ----------------------------------------------------------
 locals {
   # network group administrator, other viewer
-  network_administrator_other_viewer = {
+  network_administrator = {
     "vpnGatewayId"       = "*"
     "publicGatewayId"    = "*"
     "flowLogCollectorId" = "*"
-    "loadBalancerId"     = "*"
     "networkAclId"       = "*"
   }
   # network group admin, other groups operator - to add the instance type resources
@@ -135,6 +134,7 @@ locals {
     "imageId"         = "*"
     "instanceGroupId" = "*"
     "dedicatedHostId" = "*"
+    "loadBalancerId"  = "*"
   }
 }
 
@@ -143,7 +143,7 @@ resource "ibm_iam_access_group_policy" "networkshared_is_resources" {
   access_group_id = ibm_iam_access_group.network.id
   roles           = ["Editor"]
 
-  for_each = merge(local.network_administrator_other_viewer, local.network_administrator_other_operator)
+  for_each = merge(local.network_administrator, local.network_administrator_other_operator)
   resources {
     service = "is"
     attributes = {
@@ -157,28 +157,13 @@ resource "ibm_iam_access_group_policy" "networkapplication_is_resources" {
   access_group_id = ibm_iam_access_group.network.id
   roles           = ["Editor"]
 
-  for_each = merge(local.network_administrator_other_viewer, local.network_administrator_other_operator)
+  for_each = merge(local.network_administrator, local.network_administrator_other_operator)
   resources {
     service = "is"
     attributes = {
       "${each.key}" = each.value
     }
     resource_group_id = ibm_resource_group.application.id
-  }
-}
-
-# ---------------- is resources, shared resource group - shared team
-resource "ibm_iam_access_group_policy" "shared_is_network_resources" {
-  access_group_id = ibm_iam_access_group.shared.id
-  roles           = ["Viewer"]
-
-  for_each = local.network_administrator_other_viewer
-  resources {
-    service = "is"
-    attributes = {
-      "${each.key}" = each.value
-    }
-    resource_group_id = ibm_resource_group.shared.id
   }
 }
 
@@ -198,7 +183,7 @@ resource "ibm_iam_access_group_policy" "shared_is_network_operator_resources" {
 
 resource "ibm_iam_access_group_policy" "shared_is_instance_resources" {
   access_group_id = ibm_iam_access_group.shared.id
-  roles           = ["Administrator"]
+  roles           = ["Editor"]
 
   for_each = local.other_administrator
   resources {
@@ -207,21 +192,6 @@ resource "ibm_iam_access_group_policy" "shared_is_instance_resources" {
       "${each.key}" = each.value
     }
     resource_group_id = ibm_resource_group.shared.id
-  }
-}
-
-# ---------------- application resource group - application team
-resource "ibm_iam_access_group_policy" "application_is_network_resources" {
-  access_group_id = ibm_iam_access_group.application.id
-  roles           = ["Viewer"]
-
-  for_each = local.network_administrator_other_viewer
-  resources {
-    service = "is"
-    attributes = {
-      "${each.key}" = each.value
-    }
-    resource_group_id = ibm_resource_group.application.id
   }
 }
 
@@ -241,7 +211,7 @@ resource "ibm_iam_access_group_policy" "application_is_network_operator_resource
 
 resource "ibm_iam_access_group_policy" "application_is_instance_resources" {
   access_group_id = ibm_iam_access_group.application.id
-  roles           = ["Administrator"]
+  roles           = ["Editor"]
 
   for_each = local.other_administrator
   resources {
@@ -254,13 +224,13 @@ resource "ibm_iam_access_group_policy" "application_is_instance_resources" {
 }
 
 # -----------------------------------
-# application and shared groups both sharing the ssh - a little weird perhaps
+# application and shared groups both sharing the ssh key - a little weird perhaps
 data ibm_is_ssh_key "ssh_key" {
   name = var.ssh_key_name
 }
 resource "ibm_iam_access_group_policy" "shared_is_key_pfq" {
   for_each = {shared=ibm_iam_access_group.shared.id, application=ibm_iam_access_group.application.id}
-  access_group_id = ibm_iam_access_group.shared.id
+  access_group_id = each.value
   roles           = ["Operator"]
 
   resources {

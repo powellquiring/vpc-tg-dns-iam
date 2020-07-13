@@ -1,7 +1,8 @@
 # sym link this files into each of the directories
 ibm_region = "us-south"
 generation = 2
-basename   = "project00"
+#basename   = "project00"
+basename   = "project01"
 ibm_zones = [
   "us-south-1",
   "us-south-2",
@@ -22,3 +23,4 @@ profile = {
   "1" = "cc1-2x4"
   "2" = "cx2-2x4"
 }
+shared_lb = true

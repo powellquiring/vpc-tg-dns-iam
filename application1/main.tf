@@ -34,7 +34,7 @@ locals {
 }
 
 resource ibm_is_instance "vsiapp1" {
-  name           = "${var.basename}-vsiapp1"
+  name           = "app1-vsi"
   vpc            = local.network_context.vpc.id
   resource_group = data.ibm_resource_group.application.id
   zone           = local.network_context.subnets["z1"].zone
@@ -45,7 +45,7 @@ resource ibm_is_instance "vsiapp1" {
   primary_network_interface {
     subnet = local.network_context.subnets["z1"].id
     security_groups = [
-      #local.network_context.security_group_ssh.id, # add to ssh and debug
+      local.network_context.security_group_ssh.id, # add to ssh and debug
       #local.network_context.security_group_install_software.id, #centos nodejs is not available on an IBM mirror use outbound_all
       local.network_context.security_group_outbound_all.id,          # centos nodejs is not available on an IBM mirror
       local.network_context.security_group_ibm_dns.id,               # local dns

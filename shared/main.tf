@@ -34,7 +34,7 @@ locals {
 }
 
 resource ibm_is_instance "vsishared" {
-  name           = "${var.basename}-vsishared"
+  name           = "shared-vsi"
   vpc            = local.network_context.vpc.id
   resource_group = data.ibm_resource_group.shared.id
   zone           = local.network_context.subnets["z1"].zone
@@ -64,6 +64,7 @@ resource ibm_is_floating_ip "vsishared" {
 #-------------------------------------------------------------------
 # shared.widgets.com
 resource ibm_dns_resource_record "shared" {
+  count = var.shared_lb ? 0 : 1 # shared load balancer?
   instance_id = local.network_context.dns.guid
   zone_id     = local.network_context.dns.zone_id
   type        = "A"

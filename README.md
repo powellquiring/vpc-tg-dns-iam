@@ -11,29 +11,111 @@ Team structure
 - Shared team deploys VSIs and software on the VSIs and configures it's DNS names
 - Application team deploys VSIs and software on the VSIs
 
-The table below shows how the shared resource group is used to allow the network team to administer network resources and the shared team to administer instances
+The admin team creates an IAM policy group for each team.  The policies for the VPC Infrastructure can be grouped:
 
+Instance
+- instanceId
+- volumeId
+- floatingIpId
+- keyId
+- imageId
+- instanceGroupId
+- dedicatedHostId
+- loadBalancerId
 
+InstanceConnectivity
+- vpcId
+- subnetId
+- securityGroupId
 
-|Resource|Resource Group|Network|Shared|
--|-|-|-|
-vpcId|shared|A|x
-securityGroupId|shared|A|x
-vpnGatewayId|shared|A|x
-subnetId|shared|A|x
-publicGatewayId|shared|A|x
-flowLogCollectorId|shared|A|x
-loadBalancerId|shared|A|x
-networkAclId|shared|A|x
-instanceId|shared|x|A
-volumeId|shared|x|A
-floatingIpId|shared|x|A
-keyId|shared|x|A
-imageId|shared|x|A
-instanceGroupId|shared|x|A
-dedicatedHostId|shared|x|A
+PureNetwork:
+- vpnGatewayId
+- publicGatewayId
+- flowLogCollectorId
+- networkAclId
 
+Instance resources are administered by the shared and application team. InstanceConnectivity are administered (created/destroyed) by the network team and operated by the application team.  Operator access for a subnet is required to create an instance on the subnet.  PureNetwork is administered by the network team.  The shared team has the same permissions as the application team.
 
+Infrastructure (VPC) simplified graphic representation.  Teams are in boxes and resources are in double boxes:
+
+``` mermaid
+graph TD;
+  Shared --Editor--> Instance[[Instance]]
+  Shared --Operator--> InstanceConnectivity[[InstanceConnectivity]]
+  Network --Editor--> InstanceConnectivity;
+  Network --Editor--> PureNetwork[[PureNetwork]];
+```
+
+The Transit Gateway service is administered by the Network team.  Same with the DNS service
+
+``` mermaid
+graph TD;
+  Network --Editor--> dns-transit[[Transit Gateway]]
+  Network --Editor/Manager--> dns-svcs[[DNS]]
+  Shared --Manager--> dns-svcs[[DNS]]
+```
+
+The policy group details are captured in the tables below. 
+- role-X platform role X for a specific service and resource type within the service
+- serviceRole-X role X for a service
+
+Policy Group project00-network:
+roles|resource group|access
+-|-|-
+role-Editor,serviceRole-Manager|project00-shared|sn-dns-svcs
+role-Editor|project00-application|sn-is,flowLogCollectorId
+role-Editor|project00-application|sn-is,networkAclId
+role-Editor|project00-application|sn-is,publicGatewayId
+role-Editor|project00-application|sn-is,securityGroupId
+role-Editor|project00-application|sn-is,subnetId
+role-Editor|project00-application|sn-is,vpcId
+role-Editor|project00-application|sn-is,vpnGatewayId
+role-Editor|project00-network|sn-transit
+role-Editor|project00-shared|sn-is,flowLogCollectorId
+role-Editor|project00-shared|sn-is,networkAclId
+role-Editor|project00-shared|sn-is,publicGatewayId
+role-Editor|project00-shared|sn-is,securityGroupId
+role-Editor|project00-shared|sn-is,subnetId
+role-Editor|project00-shared|sn-is,vpcId
+role-Editor|project00-shared|sn-is,vpnGatewayId
+role-Viewer||rt-resource-group,rg-project00-application
+role-Viewer||rt-resource-group,rg-project00-network
+role-Viewer||rt-resource-group,rg-project00-shared
+
+Policy Group project00-shared:
+roles|resource group|access
+-|-|-
+role-Editor|project00-shared|sn-is,dedicatedHostId
+role-Editor|project00-shared|sn-is,floatingIpId
+role-Editor|project00-shared|sn-is,imageId
+role-Editor|project00-shared|sn-is,instanceGroupId
+role-Editor|project00-shared|sn-is,instanceId
+role-Editor|project00-shared|sn-is,keyId
+role-Editor|project00-shared|sn-is,loadBalancerId
+role-Editor|project00-shared|sn-is,volumeId
+role-Operator|project00-shared|sn-is,securityGroupId
+role-Operator|project00-shared|sn-is,subnetId
+role-Operator|project00-shared|sn-is,vpcId
+role-Operator||sn-is,keyId-pfq
+role-Viewer,serviceRole-Manager|project00-shared|sn-dns-svcs
+role-Viewer||rt-resource-group,rg-project00-shared
+
+Policy Group project00-application:
+roles|resource group|access
+-|-|-
+role-Editor|project00-application|sn-is,dedicatedHostId
+role-Editor|project00-application|sn-is,floatingIpId
+role-Editor|project00-application|sn-is,imageId
+role-Editor|project00-application|sn-is,instanceGroupId
+role-Editor|project00-application|sn-is,instanceId
+role-Editor|project00-application|sn-is,keyId
+role-Editor|project00-application|sn-is,loadBalancerId
+role-Editor|project00-application|sn-is,volumeId
+role-Operator|project00-application|sn-is,securityGroupId
+role-Operator|project00-application|sn-is,subnetId
+role-Operator|project00-application|sn-is,vpcId
+role-Operator||sn-is,keyId-pfq
+role-Viewer||rt-resource-group,rg-project00-application
 
 # Admin
 

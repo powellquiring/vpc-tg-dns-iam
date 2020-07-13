@@ -9,3 +9,4 @@ variable ssh_key_name {}
 variable ubuntu1804 {}
 variable centos_minimal {}
 variable profile {}
+variable shared_lb {}
