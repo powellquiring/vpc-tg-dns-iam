@@ -100,7 +100,8 @@ resource "ibm_iam_access_group_policy" "dns_network" {
 
 resource "ibm_iam_access_group_policy" "dns-shared" {
   access_group_id = ibm_iam_access_group.shared.id
-  roles           = ["Viewer", "Manager"]
+  roles           = ["Reader", "Viewer", "Manager"]
+ #roles          =            ["Viewer", "Manager"]
 
   resources {
     service           = "dns-svcs"
