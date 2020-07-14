@@ -15,7 +15,7 @@ function getRemote(req, res) {
         console.log(rawData)
         rawObj = JSON.parse(rawData)
         res.statusCode = 200;
-        res.end(JSON.stringify({remote_url: remote_url, remote_info: rawObj}, null, 3))
+        res.end(JSON.stringify({remote_url: remote_url, remote_ip: resp.connection.remoteAddress, remote_info: rawObj}, null, 3))
       } catch (e) {
         console.error(e.message);
       }

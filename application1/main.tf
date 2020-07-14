@@ -34,7 +34,7 @@ locals {
 }
 
 resource ibm_is_instance "vsiapp1" {
-  name           = "app1-vsi"
+  name           = "${var.basename}-app1-vsi"
   vpc            = local.network_context.vpc.id
   resource_group = data.ibm_resource_group.application.id
   zone           = local.network_context.subnets["z1"].zone

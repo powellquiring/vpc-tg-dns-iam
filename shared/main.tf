@@ -34,7 +34,7 @@ locals {
 }
 
 resource ibm_is_instance "vsishared" {
-  name           = "shared-vsi"
+  name           = "${var.basename}-shared-vsi"
   vpc            = local.network_context.vpc.id
   resource_group = data.ibm_resource_group.shared.id
   zone           = local.network_context.subnets["z1"].zone
