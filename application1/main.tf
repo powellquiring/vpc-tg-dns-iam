@@ -11,8 +11,8 @@ data terraform_remote_state "network" {
   }
 }
 
-data ibm_resource_group "application" {
-  name = "${var.basename}-application"
+data ibm_resource_group "application1" {
+  name = "${var.basename}-application1"
 }
 
 data ibm_is_ssh_key "ssh_key" {
@@ -36,7 +36,7 @@ locals {
 resource ibm_is_instance "vsiapp1" {
   name           = "${var.basename}-app1-vsi"
   vpc            = local.network_context.vpc.id
-  resource_group = data.ibm_resource_group.application.id
+  resource_group = data.ibm_resource_group.application1.id
   zone           = local.network_context.subnets["z1"].zone
   keys           = [data.ibm_is_ssh_key.ssh_key.id]
   image          = data.ibm_is_image.image.id
@@ -56,7 +56,7 @@ resource ibm_is_instance "vsiapp1" {
 }
 
 resource ibm_is_floating_ip "vsiapp1" {
-  resource_group = data.ibm_resource_group.application.id
+  resource_group = data.ibm_resource_group.application1.id
   name           = "${var.basename}-vsiapp1"
   target         = ibm_is_instance.vsiapp1.primary_network_interface[0].id
 }

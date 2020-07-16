@@ -4,6 +4,10 @@ provider "ibm" {
   generation       = var.generation
 }
 
+output basename {
+    value = var.basename
+}
+
 # ---------------- resource groups
 resource "ibm_resource_group" "network" {
   name = "${var.basename}-network"
@@ -11,8 +15,11 @@ resource "ibm_resource_group" "network" {
 resource "ibm_resource_group" "shared" {
   name = "${var.basename}-shared"
 }
-resource "ibm_resource_group" "application" {
-  name = "${var.basename}-application"
+resource "ibm_resource_group" "application1" {
+  name = "${var.basename}-application1"
+}
+resource "ibm_resource_group" "application2" {
+  name = "${var.basename}-application2"
 }
 
 # ---------------- access groups and members
@@ -20,37 +27,59 @@ resource "ibm_iam_access_group" "network" {
   name        = "${var.basename}-network"
   description = "network administrators"
 }
-
+resource "ibm_iam_service_id" "network" {
+  name        = "${var.basename}-network"
+  description = "network service id"
+}
 resource "ibm_iam_access_group_members" "network" {
   access_group_id = ibm_iam_access_group.network.id
-  ibm_ids         = ["pquiring+network@mail.test.us.ibm.com"]
+  iam_service_ids         = [ibm_iam_service_id.network.id]
 }
 
 resource "ibm_iam_access_group" "shared" {
   name        = "${var.basename}-shared"
   description = "shared administrators"
 }
-
+resource "ibm_iam_service_id" "shared" {
+  name        = "${var.basename}-shared"
+  description = "shared service id"
+}
 resource "ibm_iam_access_group_members" "shared" {
   access_group_id = ibm_iam_access_group.shared.id
-  ibm_ids         = ["pquiring+shared@mail.test.us.ibm.com"]
+  iam_service_ids         = [ibm_iam_service_id.shared.id]
 }
 
-resource "ibm_iam_access_group" "application" {
-  name        = "${var.basename}-application"
-  description = "application administrators"
+resource "ibm_iam_access_group" "application1" {
+  name        = "${var.basename}-application1"
+  description = "application1 administrators"
+}
+resource "ibm_iam_service_id" "application1" {
+  name        = "${var.basename}-application1"
+  description = "application 1 service id"
+}
+resource "ibm_iam_access_group_members" "application1" {
+  access_group_id = ibm_iam_access_group.application1.id
+  iam_service_ids         = [ibm_iam_service_id.application1.id]
 }
 
-resource "ibm_iam_access_group_members" "application" {
-  access_group_id = ibm_iam_access_group.application.id
-  ibm_ids         = ["pquiring+application@mail.test.us.ibm.com"]
+resource "ibm_iam_access_group" "application2" {
+  name        = "${var.basename}-application2"
+  description = "application2 administrators"
+}
+resource "ibm_iam_service_id" "application2" {
+  name        = "${var.basename}-application2"
+  description = "application 2 service id"
+}
+resource "ibm_iam_access_group_members" "application2" {
+  access_group_id = ibm_iam_access_group.application2.id
+  iam_service_ids         = [ibm_iam_service_id.application2.id]
 }
 
 # ---------------- viewer access to resource groups
 resource "ibm_iam_access_group_policy" "network_policy" {
   access_group_id = ibm_iam_access_group.network.id
   roles           = ["Viewer"]
-  for_each = {network=ibm_resource_group.network.id, application=ibm_resource_group.application.id, shared=ibm_resource_group.shared.id}
+  for_each = {network=ibm_resource_group.network.id, application1=ibm_resource_group.application1.id, application2=ibm_resource_group.application2.id, shared=ibm_resource_group.shared.id}
   resources {
     resource_type = "resource-group"
     # resource      = ibm_resource_group.network.id
@@ -67,12 +96,21 @@ resource "ibm_iam_access_group_policy" "shared_policy" {
   }
 }
 
-resource "ibm_iam_access_group_policy" "application_policy" {
-  access_group_id = ibm_iam_access_group.application.id
+resource "ibm_iam_access_group_policy" "application1_policy" {
+  access_group_id = ibm_iam_access_group.application1.id
   roles           = ["Viewer"]
   resources {
     resource_type = "resource-group"
-    resource      = ibm_resource_group.application.id
+    resource      = ibm_resource_group.application1.id
+  }
+}
+
+resource "ibm_iam_access_group_policy" "application2_policy" {
+  access_group_id = ibm_iam_access_group.application2.id
+  roles           = ["Viewer"]
+  resources {
+    resource_type = "resource-group"
+    resource      = ibm_resource_group.application2.id
   }
 }
 
@@ -100,8 +138,8 @@ resource "ibm_iam_access_group_policy" "dns_network" {
 
 resource "ibm_iam_access_group_policy" "dns-shared" {
   access_group_id = ibm_iam_access_group.shared.id
-  roles           = ["Reader", "Viewer", "Manager"]
- #roles          =            ["Viewer", "Manager"]
+ #roles           = ["Reader", "Viewer", "Manager"]
+  roles          =            ["Viewer", "Manager"]
 
   resources {
     service           = "dns-svcs"
@@ -113,21 +151,21 @@ resource "ibm_iam_access_group_policy" "dns-shared" {
 # Infrastructure (is) resources (.i.e vpc)
 # ----------------------------------------------------------
 locals {
-  # network group administrator, other viewer
-  network_administrator = {
+  # types of resources that just the network team manage
+  is_network_service_types = {
     "vpnGatewayId"       = "*"
     "publicGatewayId"    = "*"
     "flowLogCollectorId" = "*"
     "networkAclId"       = "*"
   }
-  # network group admin, other groups operator - to add the instance type resources
-  network_administrator_other_operator = {
+  # types of resources that both the network team and the instance teams manage
+  is_network_and_instance_service_types = {
     "vpcId"           = "*"
     "subnetId"        = "*"
     "securityGroupId" = "*"
   }
-  # (network group no access) other groups administrator of the instance type attributes
-  other_administrator = {
+  # types of resources that just the instance teams manage
+  is_instance_service_types = {
     "instanceId"      = "*"
     "volumeId"        = "*"
     "floatingIpId"    = "*"
@@ -144,7 +182,7 @@ resource "ibm_iam_access_group_policy" "networkshared_is_resources" {
   access_group_id = ibm_iam_access_group.network.id
   roles           = ["Editor"]
 
-  for_each = merge(local.network_administrator, local.network_administrator_other_operator)
+  for_each = merge(local.is_network_service_types, local.is_network_and_instance_service_types)
   resources {
     service = "is"
     attributes = {
@@ -153,18 +191,30 @@ resource "ibm_iam_access_group_policy" "networkshared_is_resources" {
     resource_group_id = ibm_resource_group.shared.id
   }
 }
-
-resource "ibm_iam_access_group_policy" "networkapplication_is_resources" {
+resource "ibm_iam_access_group_policy" "networkapplication1_is_resources" {
   access_group_id = ibm_iam_access_group.network.id
   roles           = ["Editor"]
 
-  for_each = merge(local.network_administrator, local.network_administrator_other_operator)
+  for_each = merge(local.is_network_service_types, local.is_network_and_instance_service_types)
   resources {
     service = "is"
     attributes = {
       "${each.key}" = each.value
     }
-    resource_group_id = ibm_resource_group.application.id
+    resource_group_id = ibm_resource_group.application1.id
+  }
+}
+resource "ibm_iam_access_group_policy" "networkapplication2_is_resources" {
+  access_group_id = ibm_iam_access_group.network.id
+  roles           = ["Editor"]
+
+  for_each = merge(local.is_network_service_types, local.is_network_and_instance_service_types)
+  resources {
+    service = "is"
+    attributes = {
+      "${each.key}" = each.value
+    }
+    resource_group_id = ibm_resource_group.application2.id
   }
 }
 
@@ -172,7 +222,7 @@ resource "ibm_iam_access_group_policy" "shared_is_network_operator_resources" {
   access_group_id = ibm_iam_access_group.shared.id
   roles           = ["Operator"]
 
-  for_each = local.network_administrator_other_operator
+  for_each = local.is_network_and_instance_service_types
   resources {
     service = "is"
     attributes = {
@@ -181,12 +231,11 @@ resource "ibm_iam_access_group_policy" "shared_is_network_operator_resources" {
     resource_group_id = ibm_resource_group.shared.id
   }
 }
-
 resource "ibm_iam_access_group_policy" "shared_is_instance_resources" {
   access_group_id = ibm_iam_access_group.shared.id
   roles           = ["Editor"]
 
-  for_each = local.other_administrator
+  for_each = local.is_instance_service_types
   resources {
     service = "is"
     attributes = {
@@ -196,31 +245,57 @@ resource "ibm_iam_access_group_policy" "shared_is_instance_resources" {
   }
 }
 
-resource "ibm_iam_access_group_policy" "application_is_network_operator_resources" {
-  access_group_id = ibm_iam_access_group.application.id
+resource "ibm_iam_access_group_policy" "application1_is_network_operator_resources" {
+  access_group_id = ibm_iam_access_group.application1.id
   roles           = ["Operator"]
 
-  for_each = local.network_administrator_other_operator
+  for_each = local.is_network_and_instance_service_types
   resources {
     service = "is"
     attributes = {
       "${each.key}" = each.value
     }
-    resource_group_id = ibm_resource_group.application.id
+    resource_group_id = ibm_resource_group.application1.id
+  }
+}
+resource "ibm_iam_access_group_policy" "application1_is_instance_resources" {
+  access_group_id = ibm_iam_access_group.application1.id
+  roles           = ["Editor"]
+
+  for_each = local.is_instance_service_types
+  resources {
+    service = "is"
+    attributes = {
+      "${each.key}" = each.value
+    }
+    resource_group_id = ibm_resource_group.application1.id
   }
 }
 
-resource "ibm_iam_access_group_policy" "application_is_instance_resources" {
-  access_group_id = ibm_iam_access_group.application.id
-  roles           = ["Editor"]
+resource "ibm_iam_access_group_policy" "application2_is_network_operator_resources" {
+  access_group_id = ibm_iam_access_group.application2.id
+  roles           = ["Operator"]
 
-  for_each = local.other_administrator
+  for_each = local.is_network_and_instance_service_types
   resources {
     service = "is"
     attributes = {
       "${each.key}" = each.value
     }
-    resource_group_id = ibm_resource_group.application.id
+    resource_group_id = ibm_resource_group.application2.id
+  }
+}
+resource "ibm_iam_access_group_policy" "application2_is_instance_resources" {
+  access_group_id = ibm_iam_access_group.application2.id
+  roles           = ["Editor"]
+
+  for_each = local.is_instance_service_types
+  resources {
+    service = "is"
+    attributes = {
+      "${each.key}" = each.value
+    }
+    resource_group_id = ibm_resource_group.application2.id
   }
 }
 
@@ -230,7 +305,7 @@ data ibm_is_ssh_key "ssh_key" {
   name = var.ssh_key_name
 }
 resource "ibm_iam_access_group_policy" "shared_is_key_pfq" {
-  for_each = {shared=ibm_iam_access_group.shared.id, application=ibm_iam_access_group.application.id}
+  for_each = {shared=ibm_iam_access_group.shared.id, application1=ibm_iam_access_group.application1.id, application2=ibm_iam_access_group.application2.id}
   access_group_id = each.value
   roles           = ["Operator"]
 

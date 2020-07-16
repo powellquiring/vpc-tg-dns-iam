@@ -45,20 +45,12 @@ resource ibm_is_instance "vsishared" {
   primary_network_interface {
     subnet = local.network_context.subnets["z1"].id
     security_groups = [
-      #local.network_context.security_group_install_software.id, # nodejs is not available on an IBM mirror
       local.network_context.security_group_outbound_all.id, # nodejs is not available on an IBM mirror
-      #local.network_context.security_group_ssh.id, # TODO not needed
       local.network_context.security_group_ibm_dns.id,
       local.network_context.security_group_data_inbound.id,
     ]
   }
   user_data = module.user_data_app.user_data_centos
-}
-
-resource ibm_is_floating_ip "vsishared" {
-  resource_group = data.ibm_resource_group.shared.id
-  name           = "${var.basename}-vsishared"
-  target         = ibm_is_instance.vsishared.primary_network_interface[0].id
 }
 
 #-------------------------------------------------------------------
@@ -74,6 +66,12 @@ resource ibm_dns_resource_record "shared" {
 }
 
 #-------------------------------------------------------------------
+resource ibm_is_floating_ip "vsishared" {
+  resource_group = data.ibm_resource_group.shared.id
+  name           = "${var.basename}-vsishared"
+  target         = ibm_is_instance.vsishared.primary_network_interface[0].id
+}
+
 output ibm1_public_ip {
   value = ibm_is_floating_ip.vsishared.address
 }
@@ -85,9 +83,9 @@ output ibm1_private_ip {
 output ibm1_curl {
   value = <<EOS
 
+Verify these do not work:
 ssh root@${ibm_is_floating_ip.vsishared.address}
 curl ${ibm_is_floating_ip.vsishared.address}:3000; # get hello world string
 curl ${ibm_is_floating_ip.vsishared.address}:3000/info; # get the private IP address
 EOS
-  # curl ${ibm_is_floating_ip.vsishared.address}:3000/remote; # get the remote private IP address
 }

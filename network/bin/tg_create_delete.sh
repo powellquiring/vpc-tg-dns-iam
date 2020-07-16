@@ -40,18 +40,18 @@ set_gateway_id() {
 
 # exists and status commands
 gateway_exists() {
-  echo "$GATEWAYS" | jq -e '.[] | select(.name=="'$TG_NAME'")'
+  echo "$GATEWAYS" | jq -e '.[] | select(.name=="'$TG_NAME'")' > /dev/null
 }
 gateway_status_available() {
-  echo "$GATEWAYS" | jq -e '.[] | select(.name=="'$TG_NAME'" and .status=="'available'")'
+  echo "$GATEWAYS" | jq -e '.[] | select(.name=="'$TG_NAME'" and .status=="'available'")' > /dev/null
 }
 connection_exists() {
   local vpc_crn=$1
-  echo "$CONNECTIONS" | jq -e '.[] | select(.network_id=="'$vpc_crn'")'
+  echo "$CONNECTIONS" | jq -e '.[] | select(.network_id=="'$vpc_crn'")' > /dev/null
 }
 connection_status_attached() {
   local vpc_crn=$1
-  echo "$CONNECTIONS" | jq -e '.[] | select(.network_id=="'$vpc_crn'" and .status=="'attached'")'
+  echo "$CONNECTIONS" | jq -e '.[] | select(.network_id=="'$vpc_crn'" and .status=="'attached'")' > /dev/null
 }
 
 # Creates connections if needed returns true when done.

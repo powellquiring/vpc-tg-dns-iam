@@ -4,7 +4,11 @@ generation = 2
 #basename   = "project00"
 #basename   = "project01"
 #basename   = "project02"
-basename   = "project03"
+#basename   = "project03"
+#basename   = "project04"
+#basename   = "project05"
+#basename   = "project06"
+basename = "project10"
 ibm_zones = [
   "us-south-1",
   "us-south-2",
