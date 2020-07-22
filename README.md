@@ -1,7 +1,21 @@
 # VPCs with Transit Gateway and DNS Services
-https://github.com/powellquiring/vpc-tg-dns-iam
+This is the companion github repository for the solution tutorial https://test.cloud.ibm.com/docs/solution-tutorials?topic=solution-tutorials-vpc-tg-dns-iam
 
-This tutorial walks you through creating the account resource groups and IAM access groups to organize independent teams to develop applications within VPCs connected by Transit Gateways.  Some isolation between IP addresses will be provided by private DNS names
+This repository: https://github.com/powellquiring/vpc-tg-dns-iam
+
+This tutorial walks you through creating the account resource groups and IAM access groups to organize independent devops teams to develop and maintain applications.  Each devop team administers the VPC instances, VSIs, but not the static network infrastructure like the creation of CIDR blocks and subnets.  The VPCs are connected by Transit Gateways.  The shared devops team has a service **shared.widgets.com** that is put into the DNS service.
+
+# TLDR;
+
+```
+git clone https://github.com/powellquiring/vpc-tg-dns-iam
+cd vpc-tg-dns-iam
+cp terraform.tfvars.template terraform.tfvars
+edit terraform.tfvars
+./bin/apply.sh
+# test it out
+./bin/destroy.sh
+```
 
 # IAM and Access Groups
 
@@ -11,156 +25,111 @@ Team structure
 - Shared team deploys VSIs and software on the VSIs and configures it's DNS names
 - Application team deploys VSIs and software on the VSIs
 
-The admin team creates an IAM policy group for each team.  The policies for the VPC Infrastructure can be grouped:
-
-Instance
-- instanceId
-- volumeId
-- floatingIpId
-- keyId
-- imageId
-- instanceGroupId
-- dedicatedHostId
-- loadBalancerId
-
-InstanceConnectivity
-- vpcId
-- subnetId
-- securityGroupId
-
-PureNetwork:
-- vpnGatewayId
-- publicGatewayId
-- flowLogCollectorId
-- networkAclId
-
-Instance resources are administered by the shared and application team. InstanceConnectivity are administered (created/destroyed) by the network team and operated by the application team.  Operator access for a subnet is required to create an instance on the subnet.  PureNetwork is administered by the network team.  The shared team has the same permissions as the application team.
-
-Infrastructure (VPC) simplified graphic representation.  Teams are in boxes and resources are in double boxes:
-
 ``` mermaid
-graph TD;
-  Shared --Editor--> Instance[[Instance]]
-  Shared --Operator--> InstanceConnectivity[[InstanceConnectivity]]
-  Network --Editor--> InstanceConnectivity;
-  Network --Editor--> PureNetwork[[PureNetwork]];
+graph LR;
+  Shared --Editor--> Instance[[IS Instance Service Types]];
+  Shared --Operator--> InstanceNetwork[[IS Network/Instance Service Types]];
+  Network --Editor--> InstanceNetwork;
+  Network --Editor--> NetworkResources[IS Network Service Types];
 ```
 
-The Transit Gateway service is administered by the Network team.  Same with the DNS service
-
 ``` mermaid
-graph TD;
+graph LR;
   Network --Editor--> dns-transit[[Transit Gateway]]
   Network --Editor/Manager--> dns-svcs[[DNS]]
   Shared --Manager--> dns-svcs[[DNS]]
 ```
 
-The policy group details are captured in the tables below. 
-- role-X platform role X for a specific service and resource type within the service
-- serviceRole-X role X for a service
+# Becoming a team member
+If you did not run the complete `./bin/apply.sh` you can do it for each team individually.
 
-Policy Group project00-network:
-roles|resource group|access
--|-|-
-role-Editor,serviceRole-Manager|project00-shared|sn-dns-svcs
-role-Editor|project00-application|sn-is,flowLogCollectorId
-role-Editor|project00-application|sn-is,networkAclId
-role-Editor|project00-application|sn-is,publicGatewayId
-role-Editor|project00-application|sn-is,securityGroupId
-role-Editor|project00-application|sn-is,subnetId
-role-Editor|project00-application|sn-is,vpcId
-role-Editor|project00-application|sn-is,vpnGatewayId
-role-Editor|project00-network|sn-transit
-role-Editor|project00-shared|sn-is,flowLogCollectorId
-role-Editor|project00-shared|sn-is,networkAclId
-role-Editor|project00-shared|sn-is,publicGatewayId
-role-Editor|project00-shared|sn-is,securityGroupId
-role-Editor|project00-shared|sn-is,subnetId
-role-Editor|project00-shared|sn-is,vpcId
-role-Editor|project00-shared|sn-is,vpnGatewayId
-role-Viewer||rt-resource-group,rg-project00-application
-role-Viewer||rt-resource-group,rg-project00-network
-role-Viewer||rt-resource-group,rg-project00-shared
+It is possible to populate each team's access group with users.  In this example you are the administrator and will **become** a member of the different access groups by using api keys for yourself, the admin user, or from the service IDs that will be in the other access groups.  The service ID names are ${basename}-x where x is network, shared, application1 and application2.  Later you will populate a `local.env` file in each team's directory with contents similar to this:
+```
+export TF_VAR_ibmcloud_api_key=0thisIsNotARealKeyALX0vkLNSUFC7rMLEWYpVtyZaS9
+```
+When you cd into a directory you will be reminded to execute: `source local.env`
 
-Policy Group project00-shared:
-roles|resource group|access
--|-|-
-role-Editor|project00-shared|sn-is,dedicatedHostId
-role-Editor|project00-shared|sn-is,floatingIpId
-role-Editor|project00-shared|sn-is,imageId
-role-Editor|project00-shared|sn-is,instanceGroupId
-role-Editor|project00-shared|sn-is,instanceId
-role-Editor|project00-shared|sn-is,keyId
-role-Editor|project00-shared|sn-is,loadBalancerId
-role-Editor|project00-shared|sn-is,volumeId
-role-Operator|project00-shared|sn-is,securityGroupId
-role-Operator|project00-shared|sn-is,subnetId
-role-Operator|project00-shared|sn-is,vpcId
-role-Operator||sn-is,keyId-pfq
-role-Viewer,serviceRole-Manager|project00-shared|sn-dns-svcs
-role-Viewer||rt-resource-group,rg-project00-shared
+## Admin Team
 
-Policy Group project00-application:
-roles|resource group|access
--|-|-
-role-Editor|project00-application|sn-is,dedicatedHostId
-role-Editor|project00-application|sn-is,floatingIpId
-role-Editor|project00-application|sn-is,imageId
-role-Editor|project00-application|sn-is,instanceGroupId
-role-Editor|project00-application|sn-is,instanceId
-role-Editor|project00-application|sn-is,keyId
-role-Editor|project00-application|sn-is,loadBalancerId
-role-Editor|project00-application|sn-is,volumeId
-role-Operator|project00-application|sn-is,securityGroupId
-role-Operator|project00-application|sn-is,subnetId
-role-Operator|project00-application|sn-is,vpcId
-role-Operator||sn-is,keyId-pfq
-role-Viewer||rt-resource-group,rg-project00-application
-
-# Admin
-
-There are users listed in the admin/main.tf file.
-Personal note: I used 
-- pquiring+network@mail.test.us.ibm.com
-- pquiring+application@mail.test.us.ibm.com
-- pquiring+shared@mail.test.us.ibm.com
-
-Terraform
-- Resource Groups
-- Access Groups
-- Add Users
-
-# Network
-- Define network architecture including cidr blocks allocation
-- Create network resources in the network resource group: vpc, address prefixes, subnets, resource groups, network acls
-- Create the transit gateway:
-  - application1 -> shared
-  - application2 -> (application1, shared)
-- Create DNS instance, create a zone, permit the zone on the vpcs
-
-# Shared team
-- Create DNS records
-
-# Application and DNS
-
-Terraform
-- Import VPC, subnets, ACLs
-- Create VSIs
-- Publish DNS record in an existing zone
-
-Deploy applications
-- 
+After fetching the source code and making the initial terraform.tfvars changes suggested above set current directory to ./admin and use the `ibmcloud iam api-key-create` command to create an api key for the admin.  This is the same as a password to your account and it will be used by terraform to perform tasks on your behalf.  Keep the api key safe.
 
 ```
-cat > /etc/dhcp/dhclient.conf <<EOF
-supersede domain-name-servers 161.26.0.7, 161.26.0.8;
-EOF
-dhclient -v -r eth0; dhclient -v eth0
-curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
-yum install nodejs -y
-
-
-yum install bind-utils -y
-dig shared.widgets.com @161.26.0.7
+cd admin
+echo export TF_VAR_ibmcloud_api_key=$(ibmcloud iam api-key-create project10-admin --output json | jq .apikey) > local.env
+cat local.env
+source local.env
+terraform apply
+```
+## Shared Team
+Change directory, generate an API key in the local.env and become a member of the shared access group:
 
 ```
+team=shared
+cd ../$team
+echo export TF_VAR_ibmcloud_api_key=$(ibmcloud iam service-api-key-create $team $basename-$team --output json | jq .apikey) > local.env
+cat local.env
+source local.env
+terraform apply
+```
+
+## Application1 Team
+Change directory, generate an API key in the local.env and become a member of the application1 access group:
+
+```
+team=application1
+cd ../$team
+echo export TF_VAR_ibmcloud_api_key=$(ibmcloud iam service-api-key-create $team $basename-$team --output json | jq .apikey) > local.env
+cat local.env
+source local.env
+terraform apply
+```
+
+
+Results look something like this:
+
+```
+$ terraform apply
+...
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+ibm1_curl =
+ssh root@169.48.152.220
+curl 169.48.152.220:3000; # get hello world string
+curl 169.48.152.220:3000/info; # get the private IP address
+curl 169.48.152.220:3000/remote; # get the remote private IP address
+```
+
+Try the curl commands suggested.  See something like what was captured below where the private IP address of 169.48.152.220 is 10.1.0.4 and the /remote (shared.widgets.com) is 10.0.0.4.
+
+```
+$ curl 169.48.152.220:3000/info
+
+{
+  "req_url": "/info",
+  "os_hostname": "project10-app1-vsi",
+  "ipArrays": [
+     [
+        "10.1.0.4"
+     ]
+  ]
+}
+
+$ curl 169.48.152.220:3000/remote; # get the remote private IP address
+
+{
+  "remote_url": "http://shared.widgets.com:3000/info",
+  "remote_ip": "10.0.0.4",
+  "remote_info": {
+     "req_url": "/info",
+     "os_hostname": "project10-shared-vsi",
+     "ipArrays": [
+        [
+           "10.0.0.4"
+        ]
+     ]
+  }
+}
+```
+
