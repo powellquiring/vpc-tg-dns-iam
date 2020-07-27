@@ -1,6 +1,6 @@
 provider ibm {
+  ibmcloud_api_key = var.ibmcloud_api_key
   region           = var.ibm_region
-  ibmcloud_api_key = var.ibmcloud_api_key # /DELETE_ON_PUBLISH/d
   generation       = var.generation
 }
 
